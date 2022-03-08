@@ -1,0 +1,5 @@
+.idea/
+tg_downloader.session
+tg_downloader.log
+.vscode/
+venv/
