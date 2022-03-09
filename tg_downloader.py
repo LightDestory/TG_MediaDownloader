@@ -6,11 +6,13 @@ import time
 from asyncio import Task
 from typing import Union
 
+from pyromod import listen
 from pyrogram import Client, filters
 from pyrogram.methods.utilities.idle import idle
 from pyrogram.raw.types import BotCommand, BotCommandScopeDefault
 from pyrogram.raw.functions.bots import SetBotCommands
-from pyrogram.types import Message, Video, Animation, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, Audio
+from pyrogram.types import Message, Photo, Voice, Video, Animation, InlineKeyboardMarkup, InlineKeyboardButton, \
+    CallbackQuery, Audio, Document
 
 GITHUB_LINK = "https://github.com/LightDestory/TG_MediaDownloader"
 DONATION_LINK = "https://coindrop.to/lightdestory"
@@ -85,8 +87,21 @@ def get_command_list() -> list[BotCommand]:
     ]
 
 
+# Returns the most probable file extension
+def get_extension(media_type: str, media: Union[Photo, Voice, Video, Animation, Audio, Document]) -> str:
+    if media_type == "photo":
+        return "jpg"
+    else:
+        default = "unknown"
+        if media_type in ['voice', "audio"]:
+            default = "mp3"
+        elif media_type in ['animation', 'video']:
+            default = "mp4"
+        return default if not media.mime_type else media.mime_type.split("/")[1]
+
+
 # Clean-up helper to remove workers and pending jobs
-async def abort(kill_workers: bool = False):
+async def abort(kill_workers: bool = False) -> None:
     if tasks or not queue.empty():
         logging.info("Aborting all the pending jobs")
         for t in tasks:
@@ -100,39 +115,35 @@ async def abort(kill_workers: bool = False):
             w.cancel()
 
 
+# Enqueue a job
+async def enqueue_job(message: Message, file_name: str) -> None:
+    logging.info(f'Enqueueing media: {message.media} - {file_name}')
+    reply = await message.reply_text("In queue", quote=True)
+    queue.put_nowait([message, reply, file_name])
+
+
+# Update download status
+async def worker_progress(current, total, reply: list[Message]) -> None:
+    status = int(current * 100 / total)
+    message = reply[0]
+    if status != 0 and status % 5 == 0 and str(status) not in message.text:
+        reply[0] = await message.edit(f'Downloading: {status}%')
+
+
 # Parallel worker to download media files
-async def worker():
+async def worker() -> None:
     while True:
         # Get a "work item" out of the queue.
         queue_item = await queue.get()
         message: Message = queue_item[0]
         reply: Message = queue_item[1]
-        if message.media == "photo":
-            file_name = message.photo.file_unique_id
-            mime_type = "jpg"
-        elif message.media == "voice":
-            file_name = message.voice.file_unique_id
-            mime_type = message.voice.mime_type
-            mime_type = "mp3" if not mime_type else mime_type.split("/")[1]
-        elif message.media in ['animation', "audio", 'video']:
-            media: Union[Video, Animation, Audio] = getattr(message, message.media)
-            file_name = media.file_unique_id if not media.file_name else media.file_name
-            mime_type = ""
-            if not media.file_name:
-                mime_type = media.mime_type
-                default = "mp3" if message.media == "audio" else "mp4"
-                mime_type = default if not mime_type else mime_type.split("/")[1]
-        else:
-            file_name = message.document.file_unique_id if not message.document.file_name \
-                else message.document.file_name
-            # documents should always have their extension on file_name
-            mime_type = ""
-        file_name = f'{file_name}.{mime_type}'
+        file_name: str = queue_item[2]
         file_path = os.path.join(download_path, file_name)
-        await reply.edit('Downloading...')
-        logging.info(f'{file_name} - Download started')
         try:
-            task = asyncio.get_event_loop().create_task(message.download(file_path))
+            logging.info(f'{file_name} - Download started')
+            reply = await reply.edit('Downloading:  0%')
+            task = asyncio.get_event_loop().create_task(
+                message.download(file_path, progress=worker_progress, progress_args=([reply],)))
             tasks.append(task)
             await asyncio.wait_for(task, timeout=download_timeout)
             logging.info(f'{file_name} - Successfully downloaded')
@@ -152,12 +163,14 @@ async def worker():
         queue.task_done()
 
 
-async def main():
+async def main() -> None:
     logging.info("Bot is starting...")
     await app.start()
     # Setting commands
+    logging.info("Settings Bot commands list...")
     await app.send(SetBotCommands(scope=BotCommandScopeDefault(), lang_code='', commands=get_command_list()))
     await idle()
+    logging.info("Bot is stopping...")
     await abort(kill_workers=True)
     await app.stop()
     logging.info("Bot stopped!")
@@ -168,7 +181,8 @@ app = init()
 
 # On_Message Decorators
 @app.on_message(filters.private & filters.user(users=authorized_users) & filters.command("start"))
-async def start_command(_, message: Message):
+async def start_command(_, message: Message) -> None:
+    logging.info("Executing command /start")
     await message.reply('**Greetings!** 👋\n'
                         'You have successfully set up the bot.\n' +
                         'I will download any supported media you send to me 😊\n\n' +
@@ -177,7 +191,8 @@ async def start_command(_, message: Message):
 
 
 @app.on_message(filters.private & filters.user(users=authorized_users) & filters.command("usage"))
-async def usage_command(_, message: Message):
+async def usage_command(_, message: Message) -> None:
+    logging.info("Executing command /usage")
     await message.reply_text(
         '**Usage:**\n\n'
         '__Forward to the bot any message containing a supported media file, it will be downloaded on the selected '
@@ -187,7 +202,8 @@ async def usage_command(_, message: Message):
 
 
 @app.on_message(filters.private & filters.user(users=authorized_users) & filters.command("about"))
-async def about_command(_, message: Message):
+async def about_command(_, message: Message) -> None:
+    logging.info("Executing command /about")
     await message.reply_text("This bot is free, but donations are accepted, and open source.\nIt is developed by "
                              "@LightDestory",
                              reply_markup=InlineKeyboardMarkup(
@@ -199,7 +215,8 @@ async def about_command(_, message: Message):
 
 
 @app.on_message(filters.private & filters.user(users=authorized_users) & filters.command("abort"))
-async def abort_command(_, message: Message):
+async def abort_command(_, message: Message) -> None:
+    logging.info("Executing command /abort")
     await message.reply_text("Do you want to abort all the pending jobs?",
                              reply_markup=InlineKeyboardMarkup(
                                  [[
@@ -210,7 +227,8 @@ async def abort_command(_, message: Message):
 
 
 @app.on_message(filters.private & filters.user(users=authorized_users) & filters.command("status"))
-async def status_command(_, message: Message):
+async def status_command(_, message: Message) -> None:
+    logging.info("Executing command /status")
     await message.reply_text(
         '**Current configuration:**\n\n'
         f'**Download Path:** __{download_path}__\n'
@@ -221,7 +239,8 @@ async def status_command(_, message: Message):
 
 
 @app.on_message(filters.private & filters.user(users=authorized_users) & filters.command("help"))
-async def help_command(_, message: Message):
+async def help_command(_, message: Message) -> None:
+    logging.info("Executing command /help")
     text: str = "**You can use the following commands:**\n\n"
     for command in get_command_list():
         text = text + f'/{command.command} -> __{command.description}__\n'
@@ -229,25 +248,38 @@ async def help_command(_, message: Message):
 
 
 @app.on_message(filters.private & ~filters.user(users=authorized_users))
-async def no_auth_message(_, message: Message):
+async def no_auth_message(_, message: Message) -> None:
+    logging.warning(f'Received message from unauthorized user ({message.from_user.id})')
     await message.reply_text("User is not allowed to use this bot!")
 
 
 @app.on_message(filters.private & filters.user(users=authorized_users) & filters.media)
-async def media_message(_, message: Message):
+async def media_message(_, message: Message) -> None:
     unsupported_types = ['sticker', 'contact', 'location', 'venue', 'poll', 'web_page', 'dice', 'game', 'video_note']
     if message.media in unsupported_types:
         logging.warning(f'Received invalid media: {message.message_id} - {message.media}')
         await message.reply_text("This media is not supported!", quote=True)
     else:
-        logging.info(f'Enqueueing media: {message.media} - {getattr(message, message.media).file_id}')
-        reply = await message.reply_text("In queue", quote=True)
-        await queue.put([message, reply])
+        r_text = "This file does not have a file name. Do you want to use a custom file name instead of file_id?"
+        r_markup = InlineKeyboardMarkup(
+            [[
+                InlineKeyboardButton("Yes", callback_data="media_rename/yes"),
+                InlineKeyboardButton("No", callback_data="media_rename/no")
+            ]]
+        )
+        if message.media in ["photo", 'voice']:
+            await message.reply_text(r_text, quote=True, reply_markup=r_markup)
+        elif message.media in ['animation', "audio", 'video', 'document']:
+            media: Union[Video, Animation, Audio, Document] = getattr(message, message.media)
+            if not media.file_name:
+                await message.reply_text(r_text, quote=True, reply_markup=r_markup)
+            else:
+                await enqueue_job(message, media.file_name)
 
 
 # On Callback decorators
 @app.on_callback_query(filters.user(users=authorized_users) & filters.regex(r"^abort/.+"))
-async def abort_callback(_, callback_query: CallbackQuery):
+async def abort_callback(_, callback_query: CallbackQuery) -> None:
     answer: str = callback_query.data.split("/")[1]
     if answer == "yes":
         reply: str = "There are not jobs pending!"
@@ -259,6 +291,34 @@ async def abort_callback(_, callback_query: CallbackQuery):
     else:
         await callback_query.edit_message_reply_markup()
         await callback_query.edit_message_text("Operation cancelled")
+
+
+@app.on_callback_query(filters.user(users=authorized_users) & filters.regex(r"^media_rename/.+"))
+async def media_rename_callback(client: Client, callback_query: CallbackQuery) -> None:
+    message = callback_query.message.reply_to_message
+    if message:
+        answer: str = callback_query.data.split("/")[1]
+        media: Union[Photo, Voice, Video, Animation, Audio, Document] = getattr(message, message.media)
+        ext: str = get_extension(message.media, media)
+        if answer == "no":
+            file_name = f'{media.file_unique_id}.{ext}'
+            await callback_query.message.delete()
+            await enqueue_job(message, file_name)
+        else:
+            await callback_query.edit_message_reply_markup()
+            await callback_query.edit_message_text("Enter the name in 15 seconds or it will downloading using file_id.")
+            try:
+                response = await client.listen(message.chat.id, filters.text, timeout=15)
+                file_name = f'{response.text}.{ext}'
+                await callback_query.message.delete()
+                await enqueue_job(message, file_name)
+            except asyncio.TimeoutError:
+                file_name = f'{media.file_unique_id}.{ext}'
+                await callback_query.message.delete()
+                await enqueue_job(message, file_name)
+    else:
+        await callback_query.edit_message_reply_markup()
+        await callback_query.edit_message_text("The media's message is not available anymore (too long since input?")
 
 
 app.run(main())

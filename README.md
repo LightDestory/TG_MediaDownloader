@@ -11,7 +11,7 @@ _The bot is inspired from the [Telethon-based](https://github.com/rodriguezst/te
    - [x] It runs
    - [x] It downloads supported media
    - [x] Use a fallback for missing metadata
-   - [ ] Allow custom names for un-named files instead of file_unique_id
+   - [x] Allow custom names for un-named files instead of file_unique_id
    - [ ] Improve error handling related to Telegram's service
 
 
@@ -30,7 +30,7 @@ _The bot is inspired from the [Telethon-based](https://github.com/rodriguezst/te
 The bot requires the following env-vars o work properly:
 
 | Variable Name                  | Role                                                                                                                                                               |
-| ------------------------------ |--------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | __TG_API_ID__                  | Telegram API ID obtained via developer settings (see [here](#generating-telegram-api-keys))                                                                        |
 | __TG_API_HASH__                | Telegram API HASH obtained via developer settings (see [here](#generating-telegram-api-keys))                                                                      |
 | __TG_BOT_TOKEN__               | Telegram Bot Token obtained via BotFather (see [here](#creating-a-telegram-bot))                                                                                   |
