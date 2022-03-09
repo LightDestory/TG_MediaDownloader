@@ -42,14 +42,14 @@ _The bot is inspired from the [Telethon-based](https://github.com/rodriguezst/te
 After the setup the bot is ready to use, send/forward any supported media to the bot to download on local storage.
 
 The bot supports the following commands:
-| Command     | Role                                                                                           |
-| ----------- | ---------------------------------------------------------------------------------------------- |
-| * `/start`  | Initial command (invoked by Telegram) when you start the chat with the bot for the first time. |
-| * `/help`   | Gives you the available commands list.                                                         |
-| * `/about`  | Gives you information about the project.                                                       |
-| * `/abort`  | Cancel all the pending downloads.                                                              |
-| * `/status` | Gives you the current configuration.                                                           |
-| * `/usage`  | Gives you the usage instructions.                                                              |
+| Command   | Role                                                                                           |
+| --------- | ---------------------------------------------------------------------------------------------- |
+| `/start`  | Initial command (invoked by Telegram) when you start the chat with the bot for the first time. |
+| `/help`   | Gives you the available commands list.                                                         |
+| `/about`  | Gives you information about the project.                                                       |
+| `/abort`  | Cancel all the pending downloads.                                                              |
+| `/status` | Gives you the current configuration.                                                           |
+| `/usage`  | Gives you the usage instructions.                                                              |
 
 ## Setup ⚙️
 
