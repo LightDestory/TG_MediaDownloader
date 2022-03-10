@@ -71,6 +71,8 @@ You can run the bot inside a Docker container or directly on your PC/Server OS.
 
  If you want to containerize the bot, just pull or build a image and provide the requires env-vars.
 
+ A official GitHub Packages is available [here](https://github.com/LightDestory/TG_MediaDownloader/pkgs/container/tg_mediadownloader).
+
  _Make sure that the download path is a mounted as a volume to allow the host system to access the downloaded files._
 
 ### Barebone 🖥️
