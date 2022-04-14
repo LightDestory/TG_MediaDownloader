@@ -13,6 +13,7 @@ from pyrogram.raw.types import BotCommand, BotCommandScopeDefault
 from pyrogram.raw.functions.bots import SetBotCommands
 from pyrogram.types import Message, Photo, Voice, Video, Animation, InlineKeyboardMarkup, InlineKeyboardButton, \
     CallbackQuery, Audio, Document
+from pyrogram.errors import MessageNotModified
 
 GITHUB_LINK = "https://github.com/LightDestory/TG_MediaDownloader"
 DONATION_LINK = "https://coindrop.to/lightdestory"
@@ -148,6 +149,8 @@ async def worker() -> None:
             await asyncio.wait_for(task, timeout=download_timeout)
             logging.info(f'{file_name} - Successfully downloaded')
             await reply.edit(f'Finished at {time.strftime("%H:%M", time.localtime())}')
+        except MessageNotModified:
+            pass
         except asyncio.CancelledError:
             logging.warning(f'{file_name} - Aborted')
             await reply.edit("Aborted")
@@ -157,7 +160,7 @@ async def worker() -> None:
         except Exception as e:
             logging.error(f'{file_name} - {str(e)}')
             await reply.edit(
-                f'**ERROR:** Exception {(e.__class__.__name__, str(e))} raised downloading this file: %s')
+                f'**ERROR:** Exception {(e.__class__.__name__, str(e))} raised downloading this file: {file_name}')
 
         # Notify the queue that the "work item" has been processed.
         queue.task_done()
