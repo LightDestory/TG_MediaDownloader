@@ -79,7 +79,7 @@ You can run the bot inside a Docker container or directly on your PC/Server OS.
 
    If you want to run the bot directly on your PC/Server OS, do the following:
 
-   0) Make sure to have Python 3.6+ installed on your system;
+   0) Make sure to have Python 3.9+ installed on your system;
    1) Create a folder anywhere on your pc and clone the repository there:
 
       `git clone https://github.com/LightDestory/TG_MediaDownloader`
