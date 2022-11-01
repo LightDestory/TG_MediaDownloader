@@ -13,6 +13,7 @@ from pyrogram.raw.functions.bots import SetBotCommands
 from pyrogram.raw.types import BotCommand, BotCommandScopeDefault
 from pyrogram.types import Message, Photo, Voice, Video, Animation, InlineKeyboardMarkup, InlineKeyboardButton, \
     CallbackQuery, Audio, Document
+from pyrogram.enums import ParseMode, MessageMediaType
 
 GITHUB_LINK = "https://github.com/LightDestory/TG_MediaDownloader"
 DONATION_LINK = "https://coindrop.to/lightdestory"
@@ -68,10 +69,11 @@ def init() -> Client:
             break
     # Setting up job queue and workers
     for i in range(parallel_downloads):
-        loop = asyncio.get_event_loop()
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
         workers.append(loop.create_task(worker()))
 
-    return Client(session, api_id, api_hash, bot_token=bot_token, parse_mode="combined")
+    return Client(session, api_id, api_hash, bot_token=bot_token, parse_mode=ParseMode.DEFAULT)
 
 
 # Returns the list of BotCommand
@@ -88,14 +90,14 @@ def get_command_list() -> list[BotCommand]:
 
 
 # Returns the most probable file extension
-def get_extension(media_type: str, media: Union[Photo, Voice, Video, Animation, Audio, Document]) -> str:
-    if media_type == "photo":
+def get_extension(media_type: MessageMediaType, media: Union[Photo, Voice, Video, Animation, Audio, Document]) -> str:
+    if media_type == MessageMediaType.PHOTO:
         return "jpg"
     else:
         default = "unknown"
-        if media_type in ['voice', "audio"]:
+        if media_type in [MessageMediaType.VOICE, MessageMediaType.AUDIO]:
             default = "mp3"
-        elif media_type in ['animation', 'video']:
+        elif media_type in [MessageMediaType.ANIMATION, MessageMediaType.VIDEO]:
             default = "mp4"
         return default if not media.mime_type else media.mime_type.split("/")[1]
 
@@ -170,7 +172,7 @@ async def main() -> None:
     await app.start()
     # Setting commands
     logging.info("Settings Bot commands list...")
-    await app.send(SetBotCommands(scope=BotCommandScopeDefault(), lang_code='', commands=get_command_list()))
+    await app.invoke(SetBotCommands(scope=BotCommandScopeDefault(), lang_code='', commands=get_command_list()))
     await idle()
     logging.info("Bot is stopping...")
     await abort(kill_workers=True)
@@ -257,9 +259,9 @@ async def no_auth_message(_, message: Message) -> None:
 
 @app.on_message(filters.private & filters.user(users=authorized_users) & filters.media)
 async def media_message(_, message: Message) -> None:
-    unsupported_types = ['sticker', 'contact', 'location', 'venue', 'poll', 'web_page', 'dice', 'game', 'video_note']
+    unsupported_types = [MessageMediaType.STICKER, MessageMediaType.CONTACT, MessageMediaType.LOCATION, MessageMediaType.VENUE, MessageMediaType.POLL, MessageMediaType.WEB_PAGE, MessageMediaType.DICE, MessageMediaType.GAME, MessageMediaType.VIDEO_NOTE]
     if message.media in unsupported_types:
-        logging.warning(f'Received invalid media: {message.message_id} - {message.media}')
+        logging.warning(f'Received invalid media: {message.id} - {message.media}')
         await message.reply_text("This media is not supported!", quote=True)
     else:
         r_text = "This file does not have a file name. Do you want to use a custom file name instead of file_id?"
@@ -269,10 +271,10 @@ async def media_message(_, message: Message) -> None:
                 InlineKeyboardButton("No", callback_data="media_rename/no")
             ]]
         )
-        if message.media in ["photo", 'voice']:
+        if message.media in [MessageMediaType.PHOTO, MessageMediaType.VOICE]:
             await message.reply_text(r_text, quote=True, reply_markup=r_markup)
-        elif message.media in ['animation', "audio", 'video', 'document']:
-            media: Union[Video, Animation, Audio, Document] = getattr(message, message.media)
+        elif message.media in [MessageMediaType.ANIMATION, MessageMediaType.AUDIO, MessageMediaType.VIDEO, MessageMediaType.DOCUMENT]:
+            media: Union[Video, Animation, Audio, Document] = getattr(message, message.media.value)
             if not media.file_name:
                 await message.reply_text(r_text, quote=True, reply_markup=r_markup)
             else:
@@ -300,7 +302,7 @@ async def media_rename_callback(client: Client, callback_query: CallbackQuery) -
     message = callback_query.message.reply_to_message
     if message:
         answer: str = callback_query.data.split("/")[1]
-        media: Union[Photo, Voice, Video, Animation, Audio, Document] = getattr(message, message.media)
+        media: Union[Photo, Voice, Video, Animation, Audio, Document] = getattr(message, message.media.value)
         ext: str = get_extension(message.media, media)
         if answer == "no":
             file_name = f'{media.file_unique_id}.{ext}'
