@@ -1,7 +1,7 @@
 FROM python:3.9.7-alpine
 
 WORKDIR /app
-COPY tg_downloader.py requirements.txt /app/
+COPY . /app/
 RUN apk update && apk upgrade && apk add build-base && pip install -r requirements.txt
 RUN chmod +x tg_downloader.py
 
