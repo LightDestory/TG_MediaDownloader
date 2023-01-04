@@ -88,7 +88,7 @@ _Make sure that the download path is a mounted as a volume to allow the host sys
 
 If you want to run the bot directly on your PC/Server OS, do the following:
 
-0) Make sure to have Python 3.9+ installed on your system;
+0) Make sure to have Python 3.10+ installed on your system;
 1) Create a folder anywhere on your pc and clone the repository there:
 
    `git clone https://github.com/LightDestory/TG_MediaDownloader`
