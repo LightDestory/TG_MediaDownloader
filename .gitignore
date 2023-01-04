@@ -3,3 +3,6 @@ tg_downloader.session*
 tg_downloader.log
 .vscode/
 venv/
+config.json
+temp/*
+**/__pycache__/**
