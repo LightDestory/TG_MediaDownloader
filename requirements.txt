@@ -1,5 +1,5 @@
 pyaes==1.6.1
-Pyrogram==2.0.93
+Pyrogram==2.0.103
 PySocks==1.7.1
 pyroaddon==1.0.6
 TgCrypto==1.2.5

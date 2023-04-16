@@ -4,5 +4,5 @@ tg_downloader.log
 .vscode/
 venv/
 config.json
-temp/*
+temp/
 **/__pycache__/**
