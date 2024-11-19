@@ -36,12 +36,14 @@ def get_config_from_user() -> ConfigFile:
     This function ask the user to enter the needed information
     :return: A ConfigFile instance
     """
+    logging.info("Retrieving configuration from user/env...")
     config: ConfigFile = ConfigFile()
     config.TG_SESSION = os.environ.get('TG_SESSION', 'tg_downloader')
     config.TG_API_ID = get_env('TG_API_ID', 'Enter your API ID: ', True)
     config.TG_API_HASH = get_env('TG_API_HASH', 'Enter your API hash: ')
     config.TG_BOT_TOKEN = get_env('TG_BOT_TOKEN', 'Enter your Telegram BOT token: ')
-    config.TG_DOWNLOAD_PATH = get_env('TG_DOWNLOAD_PATH', 'Enter full path to downloads directory: ')
+    config.TG_DOWNLOAD_PATH = (get_env('TG_DOWNLOAD_PATH', 'Enter full path to downloads directory: ')
+                               .replace("\"", ""))
     config.TG_MAX_PARALLEL = int(os.environ.get('TG_MAX_PARALLEL', 4))
     config.TG_DL_TIMEOUT = int(os.environ.get('TG_DL_TIMEOUT', 5400))
     while True:

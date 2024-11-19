@@ -1,5 +1,14 @@
 FROM python:3.10.9-alpine
 
+ENV TG_SESSION=""
+ENV TG_API_ID=""
+ENV TG_API_HASH=""
+ENV TG_BOT_TOKEN=""
+ENV TG_DOWNLOAD_PATH=""
+ENV TG_MAX_PARALLEL=""
+ENV TG_DL_TIMEOUT=""
+ENV TG_AUTHORIZED_USER_ID=""
+
 WORKDIR /app
 COPY . /app/
 RUN apk update && apk upgrade && apk add build-base && pip install -r requirements.txt

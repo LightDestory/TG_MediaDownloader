@@ -20,7 +20,7 @@ from modules.helpers import get_config_from_user
 from modules.models.ConfigFile import ConfigFile
 
 GITHUB_LINK: str = "https://github.com/LightDestory/TG_MediaDownloader"
-DONATION_LINK: str = "https://coindrop.to/lightdestory"
+DONATION_LINK: str = "https://ko-fi.com/lightdestory"
 
 config_manager: ConfigManager = ConfigManager(Path(os.environ.get("CONFIG_PATH", "./config.json")))
 queue: Queue = asyncio.Queue()
@@ -49,6 +49,8 @@ def init() -> Client | None:
             config_manager.load_config(config)
             if not config_manager.save_config_to_file():
                 exit(-1)
+        else:
+            exit(-1)
     else:
         config = config_manager.get_config()
     generate_workers(config.TG_MAX_PARALLEL)
