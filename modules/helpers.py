@@ -31,9 +31,9 @@ def get_env(name: str, message: str, is_int: bool = False) -> int | str:
             time.sleep(1)
 
 
-def get_config_from_user() -> ConfigFile:
+def get_config_from_user_or_env() -> ConfigFile:
     """
-    This function ask the user to enter the needed information
+    This function check for env vars or ask the user to enter the needed information
     :return: A ConfigFile instance
     """
     logging.info("Retrieving configuration from user/env...")
